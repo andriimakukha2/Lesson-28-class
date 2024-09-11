@@ -38,12 +38,18 @@ class Slider {
         const prevButton = document.createElement('button');
         prevButton.className = 'control prev';
         prevButton.textContent = '‹';
-        prevButton.addEventListener('click', () => this.prevSlide());
+        prevButton.addEventListener('click', () => {
+            this.prevSlide();
+            this.restartAutoPlay();
+        });
 
         const nextButton = document.createElement('button');
         nextButton.className = 'control next';
         nextButton.textContent = '›';
-        nextButton.addEventListener('click', () => this.nextSlide());
+        nextButton.addEventListener('click', () => {
+            this.nextSlide();
+            this.restartAutoPlay();
+        });
 
         const indicatorsContainer = document.createElement('div');
         indicatorsContainer.className = 'indicators';
@@ -52,14 +58,17 @@ class Slider {
             const indicator = document.createElement('div');
             indicator.className = 'indicator';
             indicator.dataset.slide = index;
-            indicator.addEventListener('click', () => this.goToSlide(index));
+            indicator.addEventListener('click', () => {
+                this.goToSlide(index);
+                this.restartAutoPlay();
+            });
             indicatorsContainer.appendChild(indicator);
         });
 
         const pausePlayButton = document.createElement('button');
         pausePlayButton.className = 'pause-play';
         pausePlayButton.textContent = '❚❚';
-        pausePlayButton.addEventListener('click', () => this.togglePlayPause());
+        pausePlayButton.addEventListener('click', this.togglePlayPause.bind(this));
 
         sliderWrapper.appendChild(prevButton);
         sliderWrapper.appendChild(nextButton);
@@ -85,23 +94,20 @@ class Slider {
     nextSlide() {
         this.currentSlide = (this.currentSlide + 1) % this.slides.length;
         this.showSlide(this.currentSlide);
-        this.resetAutoPlay();
     }
 
     prevSlide() {
         this.currentSlide = (this.currentSlide - 1 + this.slides.length) % this.slides.length;
         this.showSlide(this.currentSlide);
-        this.resetAutoPlay();
     }
 
     goToSlide(index) {
         this.currentSlide = index;
         this.showSlide(index);
-        this.resetAutoPlay();
     }
 
     startAutoPlay() {
-        this.intervalId = setInterval(() => this.nextSlide(), this.intervalTime);
+        this.intervalId = setInterval(this.nextSlide.bind(this), this.intervalTime);
     }
 
     stopAutoPlay() {
@@ -119,62 +125,35 @@ class Slider {
         this.isPlaying = !this.isPlaying;
     }
 
-    resetAutoPlay() {
-        if (this.isPlaying) {
-            this.stopAutoPlay();
-            this.startAutoPlay();
-        }
-    }
-
     addEventListeners() {
-        document.addEventListener('keydown', (event) => {
-            if (event.key === 'ArrowLeft') {
-                this.prevSlide();
-            } else if (event.key === 'ArrowRight') {
-                this.nextSlide();
-            }
-        });
+        const sliderWrapper = this.container.querySelector('.slider-wrapper');
 
-        this.container.addEventListener('mouseover', () => {
+        sliderWrapper.addEventListener('mouseenter', () => {
             this.stopAutoPlay();
         });
 
-        this.container.addEventListener('mouseout', () => {
+        sliderWrapper.addEventListener('mouseleave', () => {
             if (this.isPlaying) {
                 this.startAutoPlay();
             }
         });
-    }
-}
-class DragSlider extends Slider {
-    constructor(containerId, config) {
-        super(containerId, config);
-        this.initDrag();
-    }
 
-    initDrag() {
-        const slidesContainer = this.container.querySelector('.slides');
-        let startX = 0;
-
-        slidesContainer.addEventListener('mousedown', (e) => {
-            startX = e.clientX;
-            slidesContainer.addEventListener('mousemove', onDrag);
-        });
-
-        slidesContainer.addEventListener('mouseup', () => {
-            slidesContainer.removeEventListener('mousemove', onDrag);
-        });
-
-        const onDrag = (e) => {
-            const deltaX = e.clientX - startX;
-            if (deltaX > 50) {
-                this.prevSlide();
-                slidesContainer.removeEventListener('mousemove', onDrag);
-            } else if (deltaX < -50) {
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'ArrowRight') {
                 this.nextSlide();
-                slidesContainer.removeEventListener('mousemove', onDrag);
+                this.restartAutoPlay();
+            } else if (event.key === 'ArrowLeft') {
+                this.prevSlide();
+                this.restartAutoPlay();
             }
-        };
+        });
+    }
+
+    restartAutoPlay() {
+        this.stopAutoPlay();
+        if (this.isPlaying) {
+            this.startAutoPlay();
+        }
     }
 }
 
@@ -188,4 +167,3 @@ const slider = new Slider('slider-container', {
     ],
     intervalTime: 3000
 });
-new DragSlider('slider', config);
